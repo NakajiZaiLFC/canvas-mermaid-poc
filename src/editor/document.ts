@@ -19,9 +19,17 @@ export function findDiagrams(state: EditorState): Omit<DiagramBlock, 'id'>[] {
 }
 let serial = 0
 export function reconcileBlocks(old: DiagramBlock[], next: Omit<DiagramBlock, 'id'>[], changes?: ChangeDesc): DiagramBlock[] {
-  const mapped = old.map(b => ({ ...b, from: changes ? changes.mapPos(b.from, 1) : b.from }))
+  const mapped = old.filter(block => {
+    let deleted = false
+    changes?.iterChangedRanges((from, to) => {
+      if (to > from && from <= block.from && to >= block.to) deleted = true
+    })
+    return !deleted
+  }).map(b => ({ ...b, from: changes ? changes.mapPos(b.from, 1) : b.from }))
+  const used = new Set<string>()
   return next.map(block => {
-    const previous = mapped.find(b => b.from === block.from)
+    const previous = mapped.find(b => b.from === block.from && !used.has(b.id))
+    if (previous) used.add(previous.id)
     return { ...block, id: previous?.id ?? `diagram-${++serial}` }
   })
 }

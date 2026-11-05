@@ -44,3 +44,27 @@ test('import keeps unknown Markdown and invalid Mermaid source and is undoable',
   await expect(page.locator('.diagram svg')).toBeVisible()
   await expect(page.locator('.cm-content')).toContainText('文字から、伝わる。')
 })
+
+test('import cannot conceal a persistent storage-disabled warning after a corrupt record', async ({ page }) => {
+  await page.goto('./')
+  await expect(page.getByRole('textbox', { name: 'ドキュメント' })).toBeVisible()
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('canvas-mermaid-v1', 1)
+      request.onsuccess = () => {
+        const db = request.result
+        const tx = db.transaction('documents', 'readwrite')
+        tx.objectStore('documents').put({ version: 99, markdown: 'preserve me' }, 'document')
+        tx.oncomplete = () => { db.close(); resolve() }
+        tx.onerror = () => reject(tx.error)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  })
+  await page.reload()
+  await expect(page.getByRole('status')).toContainText('自動保存を停止')
+  await page.getByLabel('Markdownを読み込む', { exact: true }).setInputFiles({ name: 'new.md', mimeType: 'text/markdown', buffer: Buffer.from('# インポート文書') })
+  await expect(page.locator('.cm-content')).toContainText('インポート文書')
+  await expect(page.getByRole('status')).toContainText('読み込みました')
+  await expect(page.getByRole('status')).toContainText('自動保存を停止')
+})

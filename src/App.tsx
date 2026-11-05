@@ -11,6 +11,7 @@ export function App() {
   const menuRef = useRef<HTMLDialogElement>(null)
   const [menu, setMenu] = useState<'commands' | 'help' | null>(null)
   const [notice, setNotice] = useState('')
+  const [storageNotice, setStorageNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [ai, setAi] = useState<'generate' | 'repair' | null>(null)
 
@@ -24,14 +25,14 @@ export function App() {
       if (pending === undefined || !canSave) return
       const text = pending
       pending = undefined
-      void saveDocument(text).then(() => setNotice('')).catch(() => setNotice('端末に保存できません。操作一覧からMarkdownを書き出してください。'))
+      void saveDocument(text).then(() => setStorageNotice('')).catch(() => setStorageNotice('端末に保存できません。操作一覧からMarkdownを書き出してください。'))
     }
     const visibility = () => { if (document.visibilityState === 'hidden') flush() }
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', flush)
     void loadDocument().catch(error => {
       canSave = false
-      setNotice(`保存データを読み込めません。自動保存を停止しています。${error instanceof Error ? error.message : ''}`)
+      setStorageNotice(`保存データを読み込めません。自動保存を停止しています。${error instanceof Error ? error.message : ''}`)
       return null
     }).then(saved => {
       if (disposed || !host.current) return
@@ -66,7 +67,7 @@ export function App() {
       {loading && <p className="loading">一枚のキャンバスを開いています…</p>}
       <div ref={host} />
     </main>
-    {notice && <div className="notice" role="status">{notice}</div>}
+    {(notice || storageNotice) && <div className="notice" role="status">{storageNotice}{storageNotice && notice && <br />}{notice}</div>}
     {ai && editor.current && <AiPanel key={ai} editor={editor.current} kind={ai} onClose={() => { setAi(null); editor.current?.view.focus() }} />}
     <input ref={importInput} hidden type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" aria-label="Markdownを読み込む" onChange={async e => {
       const file = e.target.files?.[0]
