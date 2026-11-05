@@ -1,6 +1,6 @@
 import { EditorState, MapMode } from '@codemirror/state'
 import { EditorView, keymap, drawSelection, highlightSpecialChars } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from '@codemirror/commands'
 import { markdown, markdownKeymap } from '@codemirror/lang-markdown'
 import { bracketMatching } from '@codemirror/language'
 import { DiagramRenderer } from '../diagrams/renderer'
@@ -26,6 +26,7 @@ export function createEditor(parent: HTMLElement, initial: string, callbacks: {
       { key: 'Mod-Shift-p', run: () => { callbacks.commands(); return true } },
       { key: 'F1', run: () => { callbacks.help(); return true } },
       { key: 'Escape', run: preview.exit },
+      { key: 'Mod-Shift-z', run: redo, preventDefault: true },
       ...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab,
     ]),
     EditorView.updateListener.of(update => {

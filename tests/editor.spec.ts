@@ -130,3 +130,16 @@ test('editing one figure preserves the other SVG identity and uses readable hori
   expect(sizes.width / sizes.viewWidth).toBeGreaterThanOrEqual(0.79)
   expect(sizes.width).toBeGreaterThan(sizes.parent)
 })
+
+test('documented Ctrl+Shift+Z redo works with the Windows keymap', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'Win32' }))
+  await page.goto('./')
+  await page.getByRole('textbox', { name: 'ドキュメント' }).focus()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.insertText('REDO_TARGET')
+  await expect(page.locator('.cm-content')).toContainText('REDO_TARGET')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.cm-content')).not.toContainText('REDO_TARGET')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.cm-content')).toContainText('REDO_TARGET')
+})

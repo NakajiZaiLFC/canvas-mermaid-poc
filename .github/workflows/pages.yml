@@ -2,6 +2,13 @@ name: Verify and publish Canvas
 on:
   push:
     branches: [feat/canvas-poc]
+    paths-ignore:
+      - 'docs/**'
+      - 'output/**'
+      - 'README.md'
+      - 'ARCHITECTURE.md'
+      - 'CURRENT.md'
+      - 'scripts/submission-pdf.mjs'
   workflow_dispatch:
 permissions:
   contents: read
