@@ -3,6 +3,8 @@
 会議の画面共有に使う、Markdown＋Mermaidの一枚のエディター。
 ツールバーやプレビュー切替なしで、文章と図を編集できます。
 
+[公開デモを開く](https://nakajizailfc.github.io/canvas-mermaid-poc/) · [ソースコード](https://github.com/NakajiZaiLFC/canvas-mermaid-poc) · [画面例（1920×1080）](docs/screenshots/canvas-desktop.png)
+
 ## 起動
 
 Node.js 24以上を推奨（依存関係はpackage-lock.jsonで固定）。
@@ -114,5 +116,7 @@ GitHub Actionsが検証後、Viteの静的ビルドをGitHub Pagesへ公開し�
 - [進捗と残課題](CURRENT.md)
 - [検証記録](docs/VERIFICATION.md)
 - [実装計画](docs/superpowers/plans/2026-11-05-canvas.md)
+- [審査観点・提出前の確認](docs/SUBMISSION.md)
+- [A4説明PDFの原稿](output/pdf/canvas-submission-draft.pdf)
 
 公開リポジトリですが、現時点ではライセンスを付与していません。Webアプリは無料で利用できます。OSSとしての再配布ライセンス選定は別途行います。

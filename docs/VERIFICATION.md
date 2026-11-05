@@ -9,7 +9,17 @@
 - Vitest: 13テスト成功（同一ソースの図を削除したときのID取り違え回帰を含む）。
 - Vite本番ビルド: 成功。大きな遅延読込チャンクと初期エディターチャンクにサイズ警告あり。
 - npm audit: 開発依存を含め0件。minimatchの開発依存を修正版にoverride。
-- 本番ブラウザ: レビュー回帰を含む17ケース成功。性能計測1ケースは別実行で成功（通常回帰では意図的にskip）。
+- 本番ブラウザ: レビューとOS共通Redoの回帰を含む20ケース成功。性能計測1ケースは別実行で成功（通常回帰では意図的にskip）。
+
+## 公開環境
+
+- [GitHub Actions](https://github.com/NakajiZaiLFC/canvas-mermaid-poc/actions/runs/42035722069): b46561d5ce770f656009ccb00a3f5b8f6fbc4740。Linuxで型・Lint・単体13件・ビルド・ブラウザ20件を通過しPagesへデプロイ成功。
+- [公開デモ](https://nakajizailfc.github.io/canvas-mermaid-poc/): HTTP200とサブパスの資産取得を確認。
+- `TEST_URL=https://nakajizailfc.github.io/canvas-mermaid-poc/ npm run test:e2e`: **20 passed (25.5s)**。AIのモデル応答だけはテスト内で差し替え。他は実際の公開資産・IndexedDB・Mermaid描画を使用。
+- 性能計測の1ケースは通常回帰で意図的にskipし、ローカル本番ビルドで別実行済み。公開サイトの遅延としてローカル実測値を報告しない。
+- 公開後の1920×1080スクリーンショットを目視確認。固定ツールバー・別プレビューなし、本文・日本語ラベルの欠落なし。
+- A4説明原稿PDFは最終更新後に1ページ、A4寸法と日本語・URLをレンダリング画像で確認。
+- CIにはActionsのNode20非推奨（Node24へ自動移行）とubuntu-latest移行の警告が残ります。ジョブは成功。今後の保守時にActionsの新しいメジャーへ更新する。
 
 ## テストと証拠の範囲
 
@@ -57,7 +67,7 @@ Widget再生成の重複計測を修正し、30入力=30サンプルを確認し
 独立した読み取りレビューで、削除した図のIDが同一ソースの別図へ移る問題と、保存停止警告がインポート通知で隠れる問題を検出。
 両方を回帰テストで再現し、IDの一対一対応と保存通知の分離で修正しました。
 
-初回Linux CIではRedoのキー操作が失敗。Windowsキー配列でも案内したCtrl+Shift+Zが失敗することを再現し、OS既定マッピングに頼らずMod+Shift+Zを明示的に割り当てました。Macの検証だけを全OS成功として扱わず、CIを再実行します。
+Linux CIのRedo失敗を、ローカルでLinux/Windowsのnavigator.platformを使って再現しました。トランザクション記録で、テストの`Shift+z`が小文字イベントとなり2回目のUndoを実行していることを特定。実キーボードに対応する`Shift+Z`へ修正し、3種類のキー設定で回帰成功。Playwrightのキー指定は大文字小文字を区別します（[公式Keyboard API](https://playwright.dev/docs/api/class-keyboard#keyboard-press)）。Windowsでも案内したRedoを使えるよう、アプリにはMod+Shift+Zを明示的に割り当てています。キー設定の模擬テストをWindows実機検証とは扱いません。
 
 ## 未検証・制約
 
@@ -68,3 +78,5 @@ Widget再生成の重複計測を修正し、30入力=30サンプルを確認し
 - 公式一次審査書式の適合。A4原稿は主催者テンプレート照合前。
 
 画面共有相当のローカルレイアウト確認を、実際のオンライン会議検証として報告しません。
+
+[公開環境を1920×1080で確認した画面](screenshots/canvas-desktop.png)
