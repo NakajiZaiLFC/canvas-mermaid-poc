@@ -23,4 +23,11 @@ describe('Markdown diagram boundaries', () => {
     const next = reconcileBlocks(old, findDiagrams(tr.state), tr.changes)
     expect(next.map(b => b.id)).toEqual(old.map(b => b.id))
   })
+  it('does not transfer a deleted diagram identity to an identical surviving diagram', () => {
+    const state = EditorState.create({ doc: '```mermaid\nflowchart LR\nA-->B\n```\n\n```mermaid\nflowchart LR\nA-->B\n```', extensions: [markdown()] })
+    const old = reconcileBlocks([], findDiagrams(state))
+    const tr = state.update({ changes: { from: 0, to: old[1].from } })
+    const next = reconcileBlocks(old, findDiagrams(tr.state), tr.changes)
+    expect(next.map(b => b.id)).toEqual([old[1].id])
+  })
 })
