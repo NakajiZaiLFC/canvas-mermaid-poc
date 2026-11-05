@@ -1,0 +1,25 @@
+.cm-editor { font-size: 22px; line-height: 1.85; color: #304139; }
+.cm-editor.cm-focused { outline: none; }
+.cm-scroller { font-family: inherit !important; overflow: visible !important; }
+.cm-content { padding: 0; caret-color: #3f7e60; overflow-wrap: anywhere; min-width: 0; width: 100%; }
+.cm-line { padding: 0; }
+.cm-cursor { border-left-color: #3f7e60 !important; }
+.cm-selectionBackground, .cm-focused .cm-selectionBackground { background: #cfe2d77d !important; }
+.md-heading { font-weight: 600; letter-spacing: -.045em; color: #233c30; }
+.md-h1 { font-size: 46px; line-height: 1.45; padding: 0 0 10px; }
+.md-h2 { font-size: 28px; line-height: 1.6; padding-top: 10px; }
+.md-h3 { font-size: 24px; }
+.md-h4, .md-h5, .md-h6 { font-size: 22px; }
+.md-strong { font-weight: 650; color: #284e3c; }
+.md-emphasis { font-style: italic; }
+.md-inline-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #eef0e9; color: #54715e; border-radius: 4px; font-size: .84em; padding: 2px 3px; }
+.md-list { padding-left: 8px; }
+.list-bullet { display: inline-block; color: #81a28b; width: .7em; }
+.md-code, .mermaid-source { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #f0f3ed; color: #587261; font-size: 16px; line-height: 1.65; padding: 0 18px; }
+.diagram { position: relative; margin: 14px 0 22px; padding: 24px 20px; background: #f5f7f1; border: 1px solid #e5ebdf; border-radius: 12px; outline-offset: 4px; cursor: text; }
+.diagram-canvas { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.diagram-canvas svg { display: block; margin: 0 auto; }
+.diagram-status { color: #8b9b8c; font-size: 14px; min-height: 90px; display: grid; place-items: center; }
+.diagram-status[hidden], .diagram-error[hidden] { display: none; }
+.diagram-error { color: #9b7144; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 12px; }
+@media (max-width: 700px) { .md-h1 { font-size: 34px; } .cm-editor { font-size: 20px; } .diagram { padding: 16px 10px; } }

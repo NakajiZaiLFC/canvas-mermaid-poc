@@ -1,0 +1,48 @@
+@import url('./styles-editor.css');
+
+:root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: #283d35; background: #fcfcf9; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #668d7a; outline-offset: 3px; }
+button { color: inherit; }
+.paper { max-width: 1540px; margin: 0 auto; padding: 74px 7vw 26vh; }
+.loading { color: #89978f; font-size: 16px; }
+.notice { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #f6eedb; color: #6e5831; border-radius: 8px; padding: 12px 18px; font-size: 14px; max-width: 90vw; z-index: 10; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.command-dialog { border: 1px solid #dce5de; border-radius: 18px; padding: 28px 30px 22px; width: min(540px, 92vw); color: #283d35; background: #fcfcf9; box-shadow: 0 24px 100px #203c3020; }
+.command-dialog::backdrop { background: #263b2d25; backdrop-filter: blur(3px); }
+.dialog-heading { display: flex; justify-content: space-between; align-items: center; }
+.eyebrow { font-size: 11px; letter-spacing: .24em; color: #7b8e80; font-weight: 600; }
+.close-button { border: 0; background: none; font-size: 26px; padding: 0 7px; color: #748578; }
+h2 { font-size: 23px; letter-spacing: -.035em; margin: 18px 0 22px; }
+.command-list { display: grid; gap: 4px; }
+.command-list button { display: flex; justify-content: space-between; gap: 14px; align-items: center; width: 100%; border: 0; background: transparent; text-align: left; border-radius: 8px; padding: 14px 12px; font-size: 15px; }
+.command-list button:hover { background: #edf2ec; }
+.command-list button:disabled { opacity: .4; cursor: default; }
+.command-list small { color: #849187; font-size: 11px; text-align: right; }
+.dialog-footer { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e5e9df; color: #879386; font-size: 11px; }
+.help-copy { font-size: 14px; line-height: 1.9; }
+.help-copy dl { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.help-copy dd { margin: 0; color: #6c8274; }
+.help-copy button { background: #edf2ec; border: 0; border-radius: 6px; padding: 8px 14px; }
+@media (max-width: 700px) { .paper { padding: 38px 22px 22vh; } }
+
+.ai-panel { position: fixed; right: 24px; top: 24px; width: min(480px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow-y: auto; z-index: 20; border: 1px solid #dce5de; border-radius: 16px; background: #fcfcf9; box-shadow: 0 16px 70px #203c3025; padding: 24px; }
+.ai-panel h2 { font-size: 21px; margin-bottom: 12px; }
+.ai-description { font-size: 13px; line-height: 1.7; color: #708174; }
+.ai-panel textarea { width: 100%; resize: vertical; border: 1px solid #d7e1d5; border-radius: 8px; padding: 12px; background: #fff; color: #304139; font-size: 15px; line-height: 1.6; margin: 6px 0 12px; }
+.primary-button { border: 0; border-radius: 7px; background: #315d46; color: #fff; padding: 10px 16px; font-size: 14px; }
+.primary-button:disabled { opacity: .5; cursor: default; }
+.text-button { border: 0; background: transparent; color: #65816b; padding: 10px 12px; font-size: 13px; }
+.ai-error { font-size: 13px; line-height: 1.7; color: #a06742; }
+.ai-unavailable { background: #f2f1e9; border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.8; }
+.ai-unavailable a, .ai-unavailable span { display: block; margin-top: 8px; color: #55705e; }
+.candidate-svg { overflow: auto; margin: 18px 0; padding: 12px; background: #f3f6ee; border-radius: 8px; }
+.candidate-svg svg { min-width: 480px; }
+.ai-candidate summary { font-size: 12px; color: #708174; cursor: pointer; margin: 12px 0; }
+.candidate-code, .code-diff { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f3ee; padding: 10px; font-size: 12px; line-height: 1.7; user-select: text; }
+.code-diff .removed { color: #9e6656; background: #f6e9e4; }
+.code-diff .added { color: #377a50; background: #e4f1e5; }
+.ai-actions { display: flex; gap: 8px; margin-top: 16px; }

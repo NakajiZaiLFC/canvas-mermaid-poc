@@ -1,0 +1,46 @@
+import { expect, test } from '@playwright/test'
+
+test('raw HTML, SVG labels and diagram config cannot run scripts or fetch external content', async ({ page }) => {
+  const external: string[] = []
+  page.on('request', request => { if (request.url().includes('example.invalid')) external.push(request.url()) })
+  await page.goto('./')
+  expect(await page.evaluate(() => (window as unknown as { canvasUnsafeCodeRan?: boolean }).canvasUnsafeCodeRan)).toBeUndefined()
+  const editor = page.getByRole('textbox', { name: 'ドキュメント' })
+  await editor.focus(); await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.insertText('<img src="https://example.invalid/stolen" onerror="window.canvasUnsafeCodeRan=true">\n\n```mermaid\nflowchart LR\n A["<img src=https://example.invalid/diagram onerror=alert(1)>"]-->B\n```\n\nEnd')
+  await page.keyboard.press('ControlOrMeta+End')
+  await expect(page.locator('.diagram')).toHaveAttribute('data-state', /ready|error/)
+  expect(await page.evaluate(() => (window as unknown as { canvasUnsafeCodeRan?: boolean }).canvasUnsafeCodeRan)).toBeUndefined()
+  expect(external).toEqual([])
+  await expect(page.locator('.cm-content img')).toHaveCount(0)
+  await expect(page.locator('.diagram foreignObject')).toHaveCount(0)
+})
+
+test('storage write failure keeps document editable and exportable', async ({ page }) => {
+  await page.goto('./')
+  const editor = page.getByRole('textbox', { name: 'ドキュメント' })
+  await editor.focus()
+  await page.evaluate(() => { IDBObjectStore.prototype.put = () => { throw new DOMException('test quota full', 'QuotaExceededError') } })
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.insertText('# 保存できなくても消さない')
+  await expect(page.getByRole('status')).toContainText('端末に保存できません')
+  await expect(editor).toContainText('保存できなくても消さない')
+  await page.keyboard.press('ControlOrMeta+Shift+p')
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Markdownを書き出す' }).click()
+  expect((await download).suggestedFilename()).toBe('canvas.md')
+})
+
+test('import keeps unknown Markdown and invalid Mermaid source and is undoable', async ({ page }) => {
+  await page.goto('./')
+  await expect(page.locator('.diagram svg')).toBeVisible()
+  await page.getByRole('textbox', { name: 'ドキュメント' }).focus()
+  await page.keyboard.press('ControlOrMeta+Shift+p')
+  await page.getByRole('button', { name: 'Markdownを読み込む', exact: false }).click()
+  await page.getByLabel('Markdownを読み込む', { exact: true }).setInputFiles({ name: 'import.md', mimeType: 'text/markdown', buffer: Buffer.from('# Import\r\n\r\n:::unknown\r\n\r\n```mermaid\r\nflowchart LR\r\nA[broken\r\n```\r\n') })
+  await expect(page.locator('.diagram-error')).toBeVisible()
+  await expect(page.locator('.cm-content')).toContainText(':::unknown')
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.locator('.diagram svg')).toBeVisible()
+  await expect(page.locator('.cm-content')).toContainText('文字から、伝わる。')
+})

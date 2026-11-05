@@ -7,3 +7,4 @@ playwright-report/
 .superpowers/
 .DS_Store
 *.log
+*.tsbuildinfo
