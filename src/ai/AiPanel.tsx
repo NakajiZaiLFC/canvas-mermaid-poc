@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CanvasEditor } from '../editor/createEditor'
 import { createLocalModel, localAvailability } from './local'
+import { CLOUD_ENDPOINT, createCloudModel } from './cloud'
 import { runTask, type Candidate } from './harness'
 import { renderMermaid } from '../diagrams/mermaid'
 
 let candidateSerial = 0
 export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind: 'generate' | 'repair'; onClose: () => void }) {
+  const [provider, setProvider] = useState<'cloud' | 'local'>(CLOUD_ENDPOINT ? 'cloud' : 'local')
   const [target] = useState(() => editor.captureTarget(kind))
   const [availability, setAvailability] = useState<Availability | 'checking'>('checking')
   const [instruction, setInstruction] = useState('')
@@ -19,11 +21,13 @@ export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind:
   useEffect(() => {
     let disposed = false
     input.current?.focus()
-    void localAvailability().then(value => { if (!disposed) setAvailability(value) }).catch(e => {
+    setAvailability('checking')
+    void (provider === 'cloud' ? Promise.resolve('available' as const) : localAvailability()).then(value => { if (!disposed) setAvailability(value) }).catch(e => {
       if (!disposed) { setAvailability('unavailable'); setError(e instanceof Error ? e.message : String(e)) }
     })
-    return () => { disposed = true; abort.current?.abort(); editor.releaseTarget(target) }
-  }, [editor, target])
+    return () => { disposed = true }
+  }, [provider])
+  useEffect(() => () => { abort.current?.abort(); editor.releaseTarget(target) }, [editor, target])
 
   const run = async () => {
     const controller = new AbortController()
@@ -34,7 +38,9 @@ export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind:
     const timeout = setTimeout(() => controller.abort(new Error('AIの処理が時間内に完了しませんでした。もう一度お試しください。')), 180_000)
     try {
       // Called directly from the button gesture; create() may require activation for download.
-      const session = await createLocalModel(controller.signal, setProgress)
+      const session = provider === 'cloud'
+        ? { model: createCloudModel(CLOUD_ENDPOINT), destroy: () => {} }
+        : await createLocalModel(controller.signal, setProgress)
       destroy = session.destroy
       setAvailability('available'); setProgress(null)
       const task = kind === 'repair'
@@ -53,9 +59,14 @@ export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind:
   return <section className="ai-panel" role="dialog" aria-modal="false" aria-labelledby="ai-title" onKeyDown={e => {
     if (e.key === 'Escape' && !e.nativeEvent.isComposing) { e.stopPropagation(); onClose() }
   }}>
-    <div className="dialog-heading"><span className="eyebrow">ON-DEVICE AI</span><button className="close-button" aria-label="AIを閉じる" onClick={onClose}>×</button></div>
+    <div className="dialog-heading"><span className="eyebrow">{provider === 'cloud' ? 'CLOUD AI' : 'ON-DEVICE AI'}</span><button className="close-button" aria-label="AIを閉じる" onClick={onClose}>×</button></div>
     <h2 id="ai-title">{kind === 'generate' ? '言葉から、図のたたき台を。' : 'この図の構文を、整える。'}</h2>
     <p className="ai-description">{kind === 'generate' ? '作りたい図を日本語で。候補を確認してから挿入します。' : '対象のコードとエラーだけを使います。変更箇所を確認してから置き換えます。'}</p>
+    <label className="ai-provider">実行場所 <select aria-label="AIの実行場所" value={provider} disabled={busy} onChange={e => { setProvider(e.target.value as 'cloud' | 'local'); setCandidate(null); setError('') }}>
+      <option value="cloud" disabled={!CLOUD_ENDPOINT}>クラウド · モデル導入不要{!CLOUD_ENDPOINT ? '（公開準備中）' : ''}</option>
+      <option value="local">この端末 · 対応Chrome向け</option>
+    </select></label>
+    {provider === 'cloud' && <p className="ai-disclosure">{kind === 'generate' ? '入力した指示' : '対象の図のコード・エラー・補足指示'}をCloudflare Workers AIへ送信します。文書全体は送信しません。ボタンを押すと送信します。検証に失敗した場合は候補とエラーを含めて1回再試行します。<a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/" target="_blank" rel="noreferrer">データの扱い ↗</a></p>}
     {unavailable ? <div className="ai-unavailable" role="status">
       この端末では日本語の端末内AIを利用できません。対応Chromeと、モデル導入に必要な空き容量・メモリをご確認ください。
       <a href="https://developer.chrome.com/docs/ai/prompt-api#hardware-requirements" target="_blank" rel="noreferrer">対応条件を見る ↗</a>
@@ -65,7 +76,7 @@ export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind:
       <textarea id="ai-instruction" ref={input} value={instruction} onChange={e => setInstruction(e.target.value)} maxLength={4000} placeholder={kind === 'generate' ? '利用者がWebからAPIを経由してDBに保存する図' : '補足があれば入力（省略可）'} rows={3} />
       {(availability === 'downloadable' || availability === 'downloading') && <p className="ai-description">初回はChromeがモデルをダウンロードします。以下のボタンで開始します。文章を外部へ送信することはありません。</p>}
       {!candidate && <button className="primary-button" disabled={busy || availability === 'checking' || (kind === 'generate' && !instruction.trim())} onClick={() => void run()}>
-        {busy ? progress === null ? '端末内で考えています…' : `モデルを準備中 ${Math.round(progress * 100)}%` : availability === 'checking' ? '対応状況を確認中…' : kind === 'generate' ? '候補を作る' : '修復候補を作る'}
+        {busy ? progress === null ? provider === 'cloud' ? '候補を作っています…' : '端末内で考えています…' : `モデルを準備中 ${Math.round(progress * 100)}%` : availability === 'checking' ? '対応状況を確認中…' : kind === 'generate' ? provider === 'cloud' ? '送信して候補を作る' : '候補を作る' : provider === 'cloud' ? '送信して修復候補を作る' : '修復候補を作る'}
       </button>}
       {busy && <button className="text-button" onClick={() => abort.current?.abort()}>中止する</button>}
     </>}
@@ -79,7 +90,7 @@ export function AiPanel({ editor, kind, onClose }: { editor: CanvasEditor; kind:
         catch (e) { setError(e instanceof Error ? e.message : String(e)) }
       }}>この候補を適用</button><button className="text-button" onClick={() => setCandidate(null)}>作り直す</button></div>
     </div>}
-    <p className="dialog-footer">Chrome内で実行 · 外部送信なし<br />この欄を開いたまま、本文の編集を続けられます。</p>
+    <p className="dialog-footer">{provider === 'cloud' ? '利用上限あり · 取消後も開始済みの推論は計上されます' : 'Chrome内で実行 · 外部送信なし'}<br />この欄を開いたまま、本文の編集を続けられます。</p>
   </section>
 }
 

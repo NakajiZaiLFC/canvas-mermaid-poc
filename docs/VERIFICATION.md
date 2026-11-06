@@ -80,3 +80,38 @@ Linux CIのRedo失敗を、ローカルでLinux/Windowsのnavigator.platformを�
 画面共有相当のローカルレイアウト確認を、実際のオンライン会議検証として報告しません。
 
 [公開環境を1920×1080で確認した画面](screenshots/canvas-desktop.png)
+
+## 2026-11-06: completion, recovery and shared cloud AI
+
+User approved shared cloud AI, replacing the previous local-only scope. Cloudflare OAuth renewed successfully and dedicated Worker deployed as `bf2362cb-1615-4614-ba50-c134853b3ca9` at `https://canvas-mermaid-ai.arka-dia-wombox.workers.dev/ai`. No paid-plan upgrade or disk cleanup was performed.
+
+- `npm run check`: typecheck, lint, **33 unit tests**, production build passed after review fixes.
+- `npm run test:server`: **1 real SQLite/Miniflare runtime test** passed, checking concurrent reservations, global budget and delayed-alarm protection. This does not mock Durable Object storage.
+- Production browser regression before review fixes: **27 passed**, performance opt-in skipped. Local AI model boundary and cloud response boundary are deliberately simulated in ordinary CI.
+- Fresh independent review found three Important bugs: direction completion deleting same-line edges; recovery inherited by a replacement block; editing during hydration losing recovery. Each was reproduced with a failing test and fixed; focused14 cases passed. Existing headers now use keyword completion rather than inserting sample nodes.
+- A stale-repair browser case intermittently failed when relying on native DOM selection restoration after focusing the editor container. The test now explicitly chooses the Mermaid source line and asserts the actual change before approval. Review found no defect in the identity/source guard; focused repeats plus full suite confirm intended behavior. No unsupported production focus patch was introduced.
+- A staged live-browser attempt overlapped a production rebuild and failed due to a removed asset filename; subsequent tests use a fixed build. This is test orchestration failure, not model success evidence.
+- Direct live API probe: HTTP200 in2225ms, but returned invalid Mermaid (`-->|アクセス|>`). Therefore API200 alone is explicitly NOT recorded as successful generation. End-to-end validation/retry results follow separately.
+
+Unverified: native OS Japanese IME candidate selection, actual local Chrome inference, real-user usability effects, formal organizer template compliance. Controlled storage failure is tested; actual browser disk/quota exhaustion was not induced. Anonymous public quota exhaustion remains possible by design; billing amounts are not inferred from the reservation counter.
+
+### Real model E2E, staged production build
+
+`LIVE_AI=1 LIVE_STAGED=1 TEST_URL=https://nakajizailfc.github.io/ npm run test:e2e -- tests/live-ai.spec.ts`: **1 passed**, Nov6. This test served the frozen production frontend under its approved Origin and used the deployed Cloudflare endpoint without replacing model responses.
+
+- Japanese generation: candidate in **2362ms**, one request. Model returned a valid sequence diagram with 利用者 → Web → API → DB, requested nodes/connections retained.
+- Repair: candidate in **1934ms**, one request. Removing injected `broken ` from the original flowchart retained `U[利用者] --> W[Web]`, `W --> A[API]`, `A --> D[(データベース)]`.
+- Both went through real Mermaid validation/rendering, explicit approval, document application and Undo. Existing sample prose remained. Invalid source retained its prior diagram until approved repair.
+- These two successful tasks did not require automatic retry. Earlier isolated API probe returned invalid Mermaid; the model is not guaranteed to succeed. Automated harness tests cover invalid output/retry/refusal separately.
+- Times are individual observations, not statistical AI latency benchmarks. Test deliberately waited61seconds between tasks to respect rate limits.
+
+### Reviewed final regression and performance
+
+`CLOUD_TEST=1 PRODUCTION_TEST=1 MEASURE=1 npm run test:e2e`: **28 passed** (27 functional +1 performance), real-AI opt-in1 skipped. Production at1920×1080, each diagram30edits,80ms debounce included:
+
+| Diagram | median | p95 | max |
+|---|---:|---:|---:|
+| Flowchart10nodes |126.4ms|134.2ms|134.7ms|
+| Sequence4participants |104.8ms|108.5ms|109.5ms|
+
+Initial sample308.6ms. Chrome156/macOS; local AI availability remains unavailable. Values measure document change to SVG paint frame, not network AI time. Tested readable overflow and unchanged neighboring SVG identity. Native screen-sharing recipient evaluation remains unperformed.

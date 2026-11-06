@@ -3,6 +3,21 @@ import { DiagramRenderer } from './renderer'
 
 afterEach(() => vi.useRealTimers())
 describe('diagram rendering lifecycle', () => {
+  it('revalidates recovery source only after a current error and never replaces valid current data', async () => {
+    vi.useFakeTimers()
+    const renderer = new DiagramRenderer(async source => {
+      if (source === 'broken' || source === 'unsafe') throw new Error('invalid')
+      return `<svg>${source}</svg>`
+    })
+    renderer.request('a', 'broken', 'saved-good')
+    renderer.request('b', 'current-good', 'saved-old')
+    renderer.request('c', 'broken', 'unsafe')
+    await vi.runAllTimersAsync()
+    expect(renderer.get('a')).toMatchObject({ svg: '<svg>saved-good</svg>', lastValidSource: 'saved-good', error: 'invalid' })
+    expect(renderer.get('b')?.svg).toBe('<svg>current-good</svg>')
+    expect(renderer.get('c')?.svg).toBeUndefined()
+    renderer.destroy()
+  })
   it('retains the last valid SVG after an invalid edit and recovers', async () => {
     vi.useFakeTimers()
     const renderer = new DiagramRenderer(async source => {
@@ -55,4 +70,18 @@ describe('diagram rendering lifecycle', () => {
     expect(renderer.get('a')?.svg).not.toBe(b)
     renderer.destroy()
   })
+})
+
+it('carries pending recovery across edits and exposes it for a snapshot', async () => {
+  vi.useFakeTimers()
+  const renderer = new DiagramRenderer(async source => {
+    if (source.startsWith('broken')) throw new Error('invalid')
+    return `<svg>${source}</svg>`
+  })
+  renderer.request('a', 'broken', 'saved-good')
+  renderer.request('a', 'broken edit')
+  expect(renderer.get('a')?.recoverySource).toBe('saved-good')
+  await vi.runAllTimersAsync()
+  expect(renderer.get('a')).toMatchObject({ svg: '<svg>saved-good</svg>', lastValidSource: 'saved-good', error: 'invalid' })
+  renderer.destroy()
 })

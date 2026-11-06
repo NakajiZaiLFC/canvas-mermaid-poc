@@ -46,3 +46,8 @@ h2 { font-size: 23px; letter-spacing: -.035em; margin: 18px 0 22px; }
 .code-diff .removed { color: #9e6656; background: #f6e9e4; }
 .code-diff .added { color: #377a50; background: #e4f1e5; }
 .ai-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+.ai-provider { display: grid; gap: 6px; font-size: 13px; margin: 12px 0; }
+.ai-provider select { font: inherit; color: inherit; background: #fcfcf9; border: 1px solid #dce5de; border-radius: 5px; padding: 8px; }
+.ai-disclosure { font-size: 12px; line-height: 1.6; padding: 10px 12px; background: #f3eee2; border-radius: 7px; color: #74603b; }
+.ai-disclosure a { display: block; color: inherit; }

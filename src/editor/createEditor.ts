@@ -6,6 +6,8 @@ import { bracketMatching } from '@codemirror/language'
 import { DiagramRenderer } from '../diagrams/renderer'
 import { renderMermaid } from '../diagrams/mermaid'
 import { livePreview } from './preview'
+import { inputAssistance } from './completion'
+import type { DiagramRecovery, DocumentSnapshot } from '../persistence'
 
 export interface AITarget { kind: 'generate' | 'repair'; anchor: number | null; id?: string; source?: string }
 
@@ -13,15 +15,16 @@ export function createEditor(parent: HTMLElement, initial: string, callbacks: {
   change: (markdown: string) => void
   commands: () => void
   help: () => void
-}) {
-  const renderer = new DiagramRenderer(renderMermaid)
-  const preview = livePreview(renderer)
+  settled?: () => void
+}, recovery: DiagramRecovery[] = []) {
+  const renderer = new DiagramRenderer(renderMermaid, callbacks.settled)
+  const preview = livePreview(renderer, recovery)
   const targets = new Set<AITarget>()
   const view = new EditorView({ parent, state: EditorState.create({ doc: initial, extensions: [
     markdown(), history(), drawSelection(), highlightSpecialChars(), bracketMatching(),
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ 'aria-label': 'ドキュメント', spellcheck: 'false', autocapitalize: 'off' }),
-    ...preview.extensions,
+    ...preview.extensions, inputAssistance(),
     keymap.of([
       { key: 'Mod-Shift-p', run: () => { callbacks.commands(); return true } },
       { key: 'F1', run: () => { callbacks.help(); return true } },
@@ -43,6 +46,14 @@ export function createEditor(parent: HTMLElement, initial: string, callbacks: {
   view.focus()
   return {
     view, renderer,
+    snapshot(): DocumentSnapshot {
+      const blocks = view.state.field(preview.field).blocks
+      return { markdown: view.state.doc.toString(), recovery: blocks.flatMap(b => {
+        const result = renderer.get(b.id)
+        const lastValidSource = result?.lastValidSource ?? result?.recoverySource
+        return lastValidSource ? [{ from: b.from, source: b.source, lastValidSource }] : []
+      }) }
+    },
     blocks: () => view.state.field(preview.field).blocks,
     selectedDiagram: () => view.state.field(preview.field).blocks.find(b => view.state.selection.main.head >= b.from && view.state.selection.main.head <= b.to),
     captureTarget(kind: 'generate' | 'repair'): AITarget {

@@ -3,6 +3,7 @@ import { syntaxTree } from '@codemirror/language'
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from '@codemirror/view'
 import { findDiagrams, reconcileBlocks, type DiagramBlock } from './document'
 import { DiagramRenderer } from '../diagrams/renderer'
+import type { DiagramRecovery } from '../persistence'
 
 const composing = StateEffect.define<boolean>()
 const collapse = StateEffect.define<string>()
@@ -95,7 +96,7 @@ class Bullet extends WidgetType {
   toDOM() { const span = document.createElement('span'); span.className = 'list-bullet'; span.textContent = '•'; return span }
 }
 
-export function livePreview(renderer: DiagramRenderer) {
+export function livePreview(renderer: DiagramRenderer, recovery: DiagramRecovery[] = []) {
   function edit(view: EditorView, id: string) {
     const block = view.state.field(field).blocks.find(b => b.id === id)
     if (!block) return
@@ -178,17 +179,17 @@ export function livePreview(renderer: DiagramRenderer) {
   })
   const sync = ViewPlugin.fromClass(class {
     ids = new Set<string>()
-    constructor(view: EditorView) { this.sync(view) }
+    constructor(view: EditorView) { this.sync(view, true) }
     update(update: { view: EditorView; docChanged: boolean; transactions: readonly { effects: readonly StateEffect<unknown>[] }[] }) {
       if (update.view.state.field(field).composing) return
       if (update.docChanged || update.transactions.some(tr => tr.effects.some(e => e.is(composing)))) this.sync(update.view)
     }
-    sync(view: EditorView) {
+    sync(view: EditorView, initial = false) {
       const blocks = view.state.field(field).blocks
       const ids = new Set(blocks.map(b => b.id))
       this.ids.forEach(id => { if (!ids.has(id)) renderer.remove(id) })
       this.ids = ids
-      blocks.forEach(b => renderer.request(b.id, b.source))
+      blocks.forEach(b => renderer.request(b.id, b.source, initial ? recovery.find(r => r.from === b.from && r.source === b.source)?.lastValidSource : undefined))
     }
   })
   return {

@@ -1,58 +1,46 @@
 # Current status
 
-2026-11-05: basic editor and local AI integration implemented; local production, Linux CI and published-site browser checks passed. GitHub Pages is live.
+2026-11-06: input assistance, durable diagram recovery, conflict-safe persistence and explicitly approved shared cloud AI implemented. Final verification/publication in progress; consult the dated verification entries for completed checks.
 
-Approved: device-only AI; new public GitHub repository and GitHub Pages.
-Plan: docs/superpowers/plans/2026-11-05-canvas.md
+## Decisions and authorization
 
-## Decisions
-- Existing workspace is empty: initialize a dedicated repository on feat/canvas-poc; no second worktree is necessary.
-- Use CodeMirror as sole Markdown/history source; React only owns surrounding transient UI.
-- Chrome AI only for v1, no silent cloud fallback.
+- Dedicated repo / branch `feat/canvas-poc`; public GitHub and Pages already authorized.
+- User explicitly chose shared cloud AI on Nov 6, superseding the original device-only decision. No disk cleanup or paid plan upgrade performed.
+- CodeMirror remains sole Markdown/cursor/history source; React owns transient dialogs. Completion is deterministic/local; AI requires explicit action.
 
-## Implemented and verified
+## Implemented
 
-- Same-canvas Markdown live preview; in-place Mermaid source and SVG; text below figures.
-- Flowchart and Sequence Diagram; changed-block rendering; last-good diagram on error; stale-result protection.
-- Unified undo/redo, keyboard creation, mapped figure identities, stable synthetic composition.
-- IndexedDB save/restore including empty documents; Markdown import/export; persistent save failure warnings.
-- Chrome AI adapter; candidate validation/rendering, one retry, preview/diff, approval, cancellation and stale-target rejection.
-- Typecheck, lint, build, 13 unit tests and 20 production browser regression tests passed locally and on Linux CI. Published-site tests also passed all 20 cases. One opt-in performance test separately passed.
-- Measured flowchart10nodes p95 132.8ms; sequence4participants p95 109.5ms (30edits each,80ms debounce included).
-- Independent code review:2important issues reproduced and fixed with tests. No deferred minor findings.
-- A4 one-page draft PDF includes live URL and final test count; page count and Japanese rendering checked.
+- One-canvas Markdown/Mermaid editing; flowchart and sequence; last-valid rendering, stale-generation protection, undo/redo, bounded safe rendering.
+- Slash commands, inline ghost suggestions, Mermaid headers/directions/arrows/current-diagram identifiers, Tab snippets and Esc dismissal; Enter remains newline.
+- IndexedDB revision conflicts stop stale writes and preserve losing-tab text. Last valid source survives invalid-source reload; recovery is scoped to original block identity and carried across pending edits.
+- Cloudflare Workers AI generation/repair with data disclosure, validation/retry, preview/diff, approval, cancellation and stale-target rejection. Local Chrome AI remains selectable.
+- Dedicated Worker: https://canvas-mermaid-ai.arka-dia-wombox.workers.dev/ai
+- Model: @cf/meta/llama-3.3-70b-instruct-fp8-fast. Hard per-IP/global daily budget; no prompt storage or browser API keys. `ENABLED=false` disables AI.
 
 ## Publication
 
-- Source: https://github.com/NakajiZaiLFC/canvas-mermaid-poc
-- Branch: feat/canvas-poc
-- Live demo: https://nakajizailfc.github.io/canvas-mermaid-poc/ (HTTP200 and20browser cases verified).
-- Deployed source: b46561d5ce770f656009ccb00a3f5b8f6fbc4740; successful CI/deploy: https://github.com/NakajiZaiLFC/canvas-mermaid-poc/actions/runs/42035722069
-- Subsequent documentation-only commits do not redeploy the unchanged application.
-- Workflow runs tests before deployment. No API keys, server or account requirement in the app.
+- Repo: https://github.com/NakajiZaiLFC/canvas-mermaid-poc
+- Demo: https://nakajizailfc.github.io/canvas-mermaid-poc/
+- GitHub variable CANVAS_AI_ENDPOINT configured; workflow verifies then publishes.
+- Server revision bf2362cb-1615-4614-ba50-c134853b3ca9 deployed Nov 6. Frontend rollout and real AI final results are recorded below when confirmed.
 
-## Known limitations / submission decision
+## Remaining evidence gates / limitations
 
-- Actual local model not verified: isolated HeadlessChrome156 exposes LanguageModel but reports unavailable for ja/en.
-- Native OS Japanese IME conversion/candidate selection unverified; synthetic composition is not a substitute.
-- User selected real-model validation on another supported Chrome device. Follow README's seven-step checklist; do not substitute simulated tests.
-- Diagram configuration directives, external images and graphs exceeding30,000chars/300edges are rejected with source preserved.
-- Last-good SVG is memory-only; reopening an invalid source has no previous SVG.
-- Single-tab local document; last writer wins across tabs. Last250ms may be lost on forced termination.
-- Other Mermaid forms and complete Markdown nesting are outside the tested scope.
-- Initial and some lazy chunks exceed500KB minified; they are bundled locally, not fetched from third-party CDNs.
-- No real user tests or measured improvement rate. A4 document is a draft, not verified against organizer template. Official public criteria and the submission gaps are recorded in docs/SUBMISSION.md.
-- Editor PoC is ready for hands-on checking. Full AI-based submission readiness remains conditional on a real model test and judge-compatible device.
+- Native OS Japanese IME conversion/candidate selection remains unverified; synthetic composition tests are insufficient evidence.
+- Local Chrome model actual inference unverified; cloud is intended to remove that prerequisite for visitors.
+- No real user study or measured reduction in explanation time. Official A4 submission template not supplied; PDF is a draft, not confirmed compliant.
+- Last250ms may be lost on forced process termination. Conflict recovery requires exporting/merging the losing tab.
+- Anonymous attackers can consume shared quota; CORS is not authentication. NAT users share IP limits. Cloud/provider outages or quota exhaustion leave basic editing available.
+- Other Mermaid forms, complex Markdown nesting and very large diagrams remain outside formal test scope. Some bundled chunks exceed500KB.
+- Chrome extension, AI predictive typing, collaborative editing, account/cloud sync, multiple documents and training intentionally omitted.
 
 ## Resume
 
-1. Read README, ARCHITECTURE and docs/VERIFICATION.md.
-2. Run npm ci and npm run check; run production browser tests as documented.
-3. Pages deployment and published tests are verified; use the same workflow for future application changes.
-4. On supported Chrome, open AI and test Japanese generation and repair; record actual availability, duration and resulting graph. Never replace this with mock results.
-5. Perform native Japanese IME and user test; obtain official submission template, update docs/submission.html and regenerate PDF with node scripts/submission-pdf.mjs.
+Read README/ARCHITECTURE/docs/VERIFICATION, then npm ci and npm run check. Run npm run test:server and production browser tests. Real AI tests require LIVE_AI=1 and intentionally send synthetic examples; never report mocks as model evidence. Reuse Pages workflow and dedicated Worker. Obtain the organizer template and perform native IME/user checks before final submission.
 
-## Prerequisites
-- Real Chrome AI availability unknown; disk ~15GiB below22GB initial model requirement.
-- Native Chrome automation disabled in Work settings. Manual IME verification remains required.
-- Official A4 submission template not supplied; draft cannot be called officially compliant.
+## Nov6 completed verification
+
+- Reviewed code: type/lint/build and33unit tests passed; real SQLite budget integration1passed.
+- Actual deployed cloud model: staged-production browser E2E passed generation2362ms and repair1934ms, including validation, approval, application, prose preservation and Undo. No local model installation was required. Exact prompts/results are documented in docs/VERIFICATION.md.
+- Independent review: three Important correctness issues reproduced and fixed; focused14regressions passed. Actual quota exhaustion and native IME remain unverified.
+- Final reviewed production browser run:27functional+1performance passed, real-AI opt-in skipped (run separately above). Flowchart p95=134.2ms; sequence p95=108.5ms; initial308.6ms at1920×1080.

@@ -23,3 +23,12 @@
 .diagram-status[hidden], .diagram-error[hidden] { display: none; }
 .diagram-error { color: #9b7144; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 12px; }
 @media (max-width: 700px) { .md-h1 { font-size: 34px; } .cm-editor { font-size: 20px; } .diagram { padding: 16px 10px; } }
+
+.completion-ghost { color: #91a496; opacity: .8; user-select: none; pointer-events: none; font-weight: normal; font-size: .9em; }
+.cm-tooltip-autocomplete { border: 1px solid #d9e3d9 !important; border-radius: 9px; background: #fcfcf9 !important; box-shadow: 0 8px 25px #203c3018; font-size: 15px; max-width: min(500px, 90vw); overflow: hidden; }
+.cm-tooltip-autocomplete > ul { font-family: inherit !important; max-height: 270px !important; }
+.cm-tooltip-autocomplete > ul > li { padding: 7px 12px !important; }
+.cm-tooltip-autocomplete > ul > li[aria-selected] { background: #e6eee5 !important; color: #284e3c !important; }
+.cm-completionDetail { font-size: 12px; color: #708373; margin-left: 20px !important; }
+.cm-completionInfo { font: 13px/1.6 ui-monospace, monospace; white-space: pre-wrap; max-width: min(340px, 80vw); background: #fcfcf9; border: 1px solid #d9e3d9; padding: 10px; }
+.cm-snippetField { background: #dcebdd88; border-radius: 2px; }

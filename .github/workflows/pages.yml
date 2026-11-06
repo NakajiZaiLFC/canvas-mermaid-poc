@@ -18,6 +18,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_AI_ENDPOINT: ${{ vars.CANVAS_AI_ENDPOINT }}
+      CLOUD_TEST: ${{ vars.CANVAS_AI_ENDPOINT != '' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +29,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run test:server
       - run: npx playwright install --with-deps chromium
       - run: PRODUCTION_TEST=1 npm run test:e2e
       - run: npm run build

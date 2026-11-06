@@ -1,0 +1,12 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "canvas-mermaid-ai",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-06",
+  "workers_dev": true,
+  "ai": { "binding": "AI" },
+  "vars": { "ALLOWED_ORIGIN": "https://nakajizailfc.github.io", "ENABLED": "true" },
+  "durable_objects": { "bindings": [{ "name": "BUDGET", "class_name": "DailyBudget" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DailyBudget"] }],
+  "observability": { "enabled": false }
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createEditor, type CanvasEditor } from './editor/createEditor'
-import { loadDocument, saveDocument } from './persistence'
+import { DocumentSession, SaveConflict } from './persistence'
 import { SAMPLE } from './sample'
 import { AiPanel } from './ai/AiPanel'
 
@@ -18,28 +18,36 @@ export function App() {
   useEffect(() => {
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | undefined
-    let pending: string | undefined
+    const session = new DocumentSession()
+    let changed = false
+    let lastSaved = ''
     let canSave = true
     const flush = () => {
       clearTimeout(timer)
-      if (pending === undefined || !canSave) return
-      const text = pending
-      pending = undefined
-      void saveDocument(text).then(() => setStorageNotice('')).catch(() => setStorageNotice('端末に保存できません。操作一覧からMarkdownを書き出してください。'))
+      if (!changed || !canSave || !editor.current) return
+      const snapshot = editor.current.snapshot()
+      const serialized = JSON.stringify(snapshot)
+      if (serialized === lastSaved) return
+      void session.save(snapshot).then(() => { lastSaved = serialized; setStorageNotice('') }).catch(error => {
+        if (error instanceof SaveConflict) { canSave = false; setStorageNotice(error.message) }
+        else setStorageNotice('端末に保存できません。操作一覧からMarkdownを書き出してください。')
+      })
     }
     const visibility = () => { if (document.visibilityState === 'hidden') flush() }
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', flush)
-    void loadDocument().catch(error => {
+    void session.load().catch(error => {
       canSave = false
       setStorageNotice(`保存データを読み込めません。自動保存を停止しています。${error instanceof Error ? error.message : ''}`)
       return null
     }).then(saved => {
       if (disposed || !host.current) return
-      editor.current = createEditor(host.current, saved ?? SAMPLE, {
-        change: markdown => { pending = markdown; clearTimeout(timer); timer = setTimeout(flush, 250) },
+      editor.current = createEditor(host.current, saved?.markdown ?? SAMPLE, {
+        change: () => { changed = true; clearTimeout(timer); timer = setTimeout(flush, 250) },
+        settled: () => { if (changed) { clearTimeout(timer); timer = setTimeout(flush, 250) } },
         commands: () => setMenu('commands'), help: () => setMenu('help'),
-      })
+      }, saved?.recovery)
+      lastSaved = JSON.stringify(saved)
       setLoading(false)
     })
     return () => {
@@ -81,18 +89,18 @@ export function App() {
       <h2>{menu === 'help' ? '考えることに、集中する。' : 'この一枚で、できること。'}</h2>
       {menu === 'help' ? <div className="help-copy">
         <p>Markdownで文章を書き、Mermaidで図を描きます。図を選ぶと、その場でコードを編集できます。</p>
-        <dl><dt>操作一覧</dt><dd>⌘ / Ctrl + Shift + P</dd><dt>図の編集を終える</dt><dd>Esc</dd><dt>元に戻す</dt><dd>⌘ / Ctrl + Z</dd><dt>ヘルプ</dt><dd>F1</dd></dl>
+        <dl><dt>記法の候補</dt><dd>行頭で / を入力 · 図の中では自動補完</dd><dt>候補を採用 / 閉じる</dt><dd>Tab / Esc · Enterは改行</dd><dt>次の入力欄 / 前の入力欄</dt><dd>Tab / Shift + Tab</dd><dt>候補を再表示</dt><dd>Ctrl + Space</dd><dt>操作一覧</dt><dd>⌘ / Ctrl + Shift + P</dd><dt>図の編集を終える</dt><dd>Esc</dd><dt>元に戻す</dt><dd>⌘ / Ctrl + Z</dd><dt>ヘルプ</dt><dd>F1</dd></dl>
         <p>文書はこのブラウザに自動保存されます。大切な内容はMarkdownで書き出してください。図が横に長いときは、図の中を横スクロールできます。</p>
         <button onClick={() => setMenu('commands')}>操作一覧を開く</button>
       </div> : <div className="command-list">
         <button onClick={() => { close(); editor.current?.insertDiagram() }}><span>図を追加する</span><small>Mermaid</small></button>
-        <button onClick={() => { close(); setAi('generate') }}><span>AIで図を作る</span><small>端末内で実行</small></button>
+        <button onClick={() => { close(); setAi('generate') }}><span>AIで図を作る</span><small>実行場所を選択</small></button>
         <button disabled={!editor.current?.selectedDiagram()} onClick={() => { close(); setAi('repair') }}><span>この図をAIで修復</span><small>図を選択して実行</small></button>
         <button onClick={exportMarkdown}><span>Markdownを書き出す</span><small>.md</small></button>
         <button onClick={() => { close(); importInput.current?.click() }}><span>Markdownを読み込む</span><small>文書を置き換え · Undoで復帰</small></button>
         <button onClick={() => setMenu('help')}><span>使い方</span><small>F1</small></button>
       </div>}
-      <p className="dialog-footer">あなたの文章は、このブラウザの中に。</p>
+      <p className="dialog-footer">文書はこのブラウザに保存。AIは実行時に送信先を表示します。</p>
     </dialog>
   </>
 }
