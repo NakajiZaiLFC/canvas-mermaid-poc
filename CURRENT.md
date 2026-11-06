@@ -1,5 +1,7 @@
 # Current status
 
+IME follow-up (Nov6, accepted for PoC): user confirmed Japanese input works in regular Chrome and explicitly directed us to stop this investigation and proceed. Native Chrome conversion and isolated CDP composition/commit/Undo have partial evidence; native candidate-menu selection and native post-commit Undo remain unverified, but are not submission blockers. Manual input in ChatGPT's in-app Canvas remains a reported compatibility limitation; use regular Chrome. Diagnostic observation was removed from the public tab, the diagnostic server stopped and temporary comparison pages removed. No application-code fix was claimed or applied.
+
 2026-11-06: input assistance, durable diagram recovery, conflict-safe persistence and explicitly approved shared cloud AI implemented. Published and verified, including actual cloud generation/repair on the live URL. Consult the dated verification entries for details.
 
 ## Decisions and authorization
@@ -26,7 +28,7 @@
 
 ## Remaining evidence gates / limitations
 
-- Native OS Japanese IME conversion/candidate selection remains unverified; synthetic composition tests are insufficient evidence.
+- Chrome Japanese input accepted by the user. In-app-browser compatibility, native candidate selection and native Undo follow-up are deferred by explicit user decision, not submission gates.
 - Local Chrome model actual inference unverified; cloud is intended to remove that prerequisite for visitors.
 - No real user study or measured reduction in explanation time. Official A4 submission template not supplied; PDF is a draft, not confirmed compliant.
 - Last250ms may be lost on forced process termination. Conflict recovery requires exporting/merging the losing tab.
@@ -36,7 +38,7 @@
 
 ## Resume
 
-Read README/ARCHITECTURE/docs/VERIFICATION, then npm ci and npm run check. Run npm run test:server and production browser tests. Real AI tests require LIVE_AI=1 and intentionally send synthetic examples; never report mocks as model evidence. Reuse Pages workflow and dedicated Worker. Obtain the organizer template and perform native IME/user checks before final submission.
+Read README/ARCHITECTURE/docs/VERIFICATION. Reuse the published app and dedicated Worker; no implementation change was needed for the IME acceptance decision. Obtain the organizer template and finalize submission. Do not reopen the deferred IME investigation unless requested. For future code changes, run npm run check, npm run test:server and relevant production browser tests. Real AI tests require LIVE_AI=1 and intentionally send synthetic examples; never report mocks as model evidence.
 
 ## Nov6 completed verification
 
