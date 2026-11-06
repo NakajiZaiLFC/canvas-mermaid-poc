@@ -1,6 +1,6 @@
 # Current status
 
-2026-11-06: input assistance, durable diagram recovery, conflict-safe persistence and explicitly approved shared cloud AI implemented. Final verification/publication in progress; consult the dated verification entries for completed checks.
+2026-11-06: input assistance, durable diagram recovery, conflict-safe persistence and explicitly approved shared cloud AI implemented. Published and verified, including actual cloud generation/repair on the live URL. Consult the dated verification entries for details.
 
 ## Decisions and authorization
 
@@ -22,7 +22,7 @@
 - Repo: https://github.com/NakajiZaiLFC/canvas-mermaid-poc
 - Demo: https://nakajizailfc.github.io/canvas-mermaid-poc/
 - GitHub variable CANVAS_AI_ENDPOINT configured; workflow verifies then publishes.
-- Server revision bf2362cb-1615-4614-ba50-c134853b3ca9 deployed Nov 6. Frontend rollout and real AI final results are recorded below when confirmed.
+- Server revision bf2362cb-1615-4614-ba50-c134853b3ca9 deployed Nov 6. Frontend rollout and real AI final results are recorded below.
 
 ## Remaining evidence gates / limitations
 
@@ -44,3 +44,6 @@ Read README/ARCHITECTURE/docs/VERIFICATION, then npm ci and npm run check. Run n
 - Actual deployed cloud model: staged-production browser E2E passed generation2362ms and repair1934ms, including validation, approval, application, prose preservation and Undo. No local model installation was required. Exact prompts/results are documented in docs/VERIFICATION.md.
 - Independent review: three Important correctness issues reproduced and fixed; focused14regressions passed. Actual quota exhaustion and native IME remain unverified.
 - Final reviewed production browser run:27functional+1performance passed, real-AI opt-in skipped (run separately above). Flowchart p95=134.2ms; sequence p95=108.5ms; initial308.6ms at1920×1080.
+- Frontend f67320d0f63f1eebac7357a1090933ca12767bad deployed successfully. CI https://github.com/NakajiZaiLFC/canvas-mermaid-poc/actions/runs/42171299520 passed33unit+1runtime+27browser cases. Public HTML200 and endpoint CSP verified; PDF A4/1page visually checked.
+- Final public acceptance:28passed (27regression+1real-model E2E). Public generation2473ms, repair1860ms, one request each; validation/approval/Undo/prose preservation passed. Performance opt-in skipped here because measured separately.
+- The web editor and AI demonstration are ready for judges to try. Formal submission remains subject to organizer-template matching and actual submission; native IME and real-user evaluation remain unverified. Current docs-only updates do not redeploy unchanged code.

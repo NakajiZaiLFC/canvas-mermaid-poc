@@ -35,12 +35,12 @@ Files: persistence.ts/tests, App.tsx, renderer.ts/tests, createEditor.ts, tests/
 ### Task 3: Verify, publish, handoff
 - [x] Full check and production/browser performance regression; independent review and fix findings.
 - [x] Update README, ARCHITECTURE, CURRENT, verification and submission draft with evidence.
-- [ ] Commit/push under existing publication authorization; CI and public URL tests.
-- [ ] Clearly report only externally blocked verification; no claim that mocks prove real AI.
+- [x] Commit/push under existing publication authorization; CI and public URL tests.
+- [x] Clearly report only externally blocked verification; no claim that mocks prove real AI.
 
 ### Task 2b: Shared cloud AI (explicitly approved user change)
 Files: server/worker.ts, server/budget.ts, wrangler config/tests; src/ai/cloud.ts/AiPanel.tsx; CSP build plugin; tests/cloud.spec.ts.
 - [x] RED: reject foreign origins/oversize requests/exhausted budgets without model calls; validate provider response; cloud UI discloses submission and still requires candidate approval.
 - [x] Build authenticated Workers AI binding with atomic daily budget; frontend endpoint from build config, local option retained, no implicit fallback or content submission.
 - [x] Run unit and HTTP/browser boundary tests; package dry run. After concrete result, obtain expired Cloudflare OAuth login and deploy, test real Japanese generation+repair.
-- [ ] If auth remains unavailable, publish completed editor improvements and accurately preserve cloud deployment prerequisite; never claim model mocks prove AI works.
+- [x] Auth completed; dedicated cloud endpoint and frontend published. Real model generation/repair verified on public URL; no simulated-model claim.

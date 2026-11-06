@@ -115,3 +115,15 @@ Unverified: native OS Japanese IME candidate selection, actual local Chrome infe
 | Sequence4participants |104.8ms|108.5ms|109.5ms|
 
 Initial sample308.6ms. Chrome156/macOS; local AI availability remains unavailable. Values measure document change to SVG paint frame, not network AI time. Tested readable overflow and unchanged neighboring SVG identity. Native screen-sharing recipient evaluation remains unperformed.
+
+### Deployment
+
+Frontend commit `f67320d0f63f1eebac7357a1090933ca12767bad` deployed successfully through [GitHub Actions42171299520](https://github.com/NakajiZaiLFC/canvas-mermaid-poc/actions/runs/42171299520). Linux CI passed33unit,1SQLite runtime,27browser cases; real-AI/performance opt-ins skipped. Public HTML returned200 and includes the actual Worker origin in CSP and Pages-prefixed assets. The frontend uses repository variable `CANVAS_AI_ENDPOINT`; no browser credential is present.
+
+The updated PDF was regenerated, confirmed A4/1page with pdfinfo, and visually inspected as a PNG. Official template correspondence remains unverified.
+
+### Live public site final acceptance
+
+`CLOUD_TEST=1 LIVE_AI=1 TEST_URL=https://nakajizailfc.github.io/canvas-mermaid-poc/ npm run test:e2e`: **28 passed** (27 regression +1 real-model E2E), performance1 skipped. Actual published assets and deployed Worker used, no staged asset substitution. Generation2473ms and repair1860ms, one real request each. Output retained the expected four participants/connections; candidate validation, approval, insertion/replacement, unchanged prose and Undo passed. Public desktop screenshot at1920×1080 visually inspected.
+
+Final handoff: code-based follow-up tasks complete and deployed. Deferred verification: native Japanese IME, actual local model (optional), induced real storage exhaustion, third-party user study and organizer-provided template compliance. No Critical review findings remain; all three Important findings fixed. The reviewer’s optional quota-exhaustion coverage remains deferred; synthetic QuotaExceededError behavior is covered.
