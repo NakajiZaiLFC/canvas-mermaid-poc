@@ -15,7 +15,8 @@ SSRは不要なのでViteを採用し、任意のクラウドAIは独立したWo
 | スケジューリング・世代・キャッシュ | `src/diagrams/renderer.ts` |
 | AIアダプター・検証・承認UI | `src/ai/` |
 | 保存 | `src/persistence.ts` |
-| 一時操作UI・初期化 | `src/App.tsx` |
+| 一時操作UI・初期化 | `src/App.tsx`、`src/CommandMenu.tsx` |
+| 補完・共通候補と検索 | `src/editor/completion.ts`、`src/editor/assistance.ts` |
 
 ## Rendering and input
 
@@ -76,3 +77,7 @@ This section supersedes the original device-only AI and last-writer-wins persist
 - `vite.config.ts`: adds only configured AI origin to connect-src. AI credentials stay in the Worker binding, never in frontend builds or repository variables.
 
 Rationale: static frontend retains fast local editing; optional inference is shared server-side so judges and visitors need no model installation. Cost/abuse limits deliberately restrict the anonymous PoC. CORS is not authentication; determined callers can consume the shared quota. Local AI remains an explicit alternative, with actual availability unverified.
+
+## Expanded assistance
+
+One local catalogue supplies 16 document templates to slash/plain-keyword completion and the searchable menu. NFKC/case/kana normalization, exact/prefix/substring ranking and a bounded one-edit Latin typo match do not invoke AI. Thirteen diagram snippets are scoped to flow/sequence context; IDs come only from the current figure. Ambiguous plain-text suffixes suppress structural completion. CodeMirror snippets and history isolation handle insertion and repeated fields. Root templates resolve the containing Markdown code block, close unfinished fences and start on a blank line before insertion. The small launcher is the only persistent control; full menus remain transient.

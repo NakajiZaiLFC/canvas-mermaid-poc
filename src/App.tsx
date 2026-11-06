@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createEditor, type CanvasEditor } from './editor/createEditor'
 import { DocumentSession, SaveConflict } from './persistence'
 import { SAMPLE } from './sample'
+import { CommandMenu } from './CommandMenu'
 import { AiPanel } from './ai/AiPanel'
 
 export function App() {
@@ -59,8 +60,11 @@ export function App() {
     }
   }, [])
 
-  useEffect(() => { if (menu) menuRef.current?.showModal(); else menuRef.current?.close() }, [menu])
-  const close = () => { setMenu(null); editor.current?.view.focus() }
+  useEffect(() => {
+    if (menu) { menuRef.current?.showModal(); menuRef.current?.querySelector<HTMLInputElement>('.command-search')?.focus() }
+    else menuRef.current?.close()
+  }, [menu])
+  const close = () => { menuRef.current?.close(); setMenu(null); editor.current?.view.focus() }
   const exportMarkdown = () => {
     if (!editor.current) return
     const blob = new Blob([editor.current.view.state.doc.toString()], { type: 'text/markdown;charset=utf-8' })
@@ -75,6 +79,7 @@ export function App() {
       {loading && <p className="loading">一枚のキャンバスを開いています…</p>}
       <div ref={host} />
     </main>
+    {!menu && !ai && !loading && <button className="command-launcher" aria-label="挿入・操作を開く" title="挿入・操作（⌘ / Ctrl + K）" onClick={() => setMenu('commands')}>＋ <span>挿入・操作</span></button>}
     {(notice || storageNotice) && <div className="notice" role="status">{storageNotice}{storageNotice && notice && <br />}{notice}</div>}
     {ai && editor.current && <AiPanel key={ai} editor={editor.current} kind={ai} onClose={() => { setAi(null); editor.current?.view.focus() }} />}
     <input ref={importInput} hidden type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" aria-label="Markdownを読み込む" onChange={async e => {
@@ -89,17 +94,12 @@ export function App() {
       <h2>{menu === 'help' ? '考えることに、集中する。' : 'この一枚で、できること。'}</h2>
       {menu === 'help' ? <div className="help-copy">
         <p>Markdownで文章を書き、Mermaidで図を描きます。図を選ぶと、その場でコードを編集できます。</p>
-        <dl><dt>記法の候補</dt><dd>行頭で / を入力 · 図の中では自動補完</dd><dt>候補を採用 / 閉じる</dt><dd>Tab / Esc · Enterは改行</dd><dt>次の入力欄 / 前の入力欄</dt><dd>Tab / Shift + Tab</dd><dt>候補を再表示</dt><dd>Ctrl + Space</dd><dt>操作一覧</dt><dd>⌘ / Ctrl + Shift + P</dd><dt>図の編集を終える</dt><dd>Esc</dd><dt>元に戻す</dt><dd>⌘ / Ctrl + Z</dd><dt>ヘルプ</dt><dd>F1</dd></dl>
+        <dl><dt>記法の候補</dt><dd>行頭で / を入力 · 図の中では自動補完</dd><dt>候補を採用 / 閉じる</dt><dd>Tab / Esc · Enterは改行</dd><dt>次の入力欄 / 前の入力欄</dt><dd>Tab / Shift + Tab</dd><dt>候補を再表示</dt><dd>Ctrl + Space</dd><dt>挿入・操作を検索</dt><dd>右下の＋ · ⌘ / Ctrl + K</dd><dt>操作一覧</dt><dd>⌘ / Ctrl + Shift + P</dd><dt>図の編集を終える</dt><dd>Esc</dd><dt>元に戻す</dt><dd>⌘ / Ctrl + Z</dd><dt>ヘルプ</dt><dd>F1</dd></dl>
         <p>文書はこのブラウザに自動保存されます。大切な内容はMarkdownで書き出してください。図が横に長いときは、図の中を横スクロールできます。</p>
         <button onClick={() => setMenu('commands')}>操作一覧を開く</button>
-      </div> : <div className="command-list">
-        <button onClick={() => { close(); editor.current?.insertDiagram() }}><span>図を追加する</span><small>Mermaid</small></button>
-        <button onClick={() => { close(); setAi('generate') }}><span>AIで図を作る</span><small>実行場所を選択</small></button>
-        <button disabled={!editor.current?.selectedDiagram()} onClick={() => { close(); setAi('repair') }}><span>この図をAIで修復</span><small>図を選択して実行</small></button>
-        <button onClick={exportMarkdown}><span>Markdownを書き出す</span><small>.md</small></button>
-        <button onClick={() => { close(); importInput.current?.click() }}><span>Markdownを読み込む</span><small>文書を置き換え · Undoで復帰</small></button>
-        <button onClick={() => setMenu('help')}><span>使い方</span><small>F1</small></button>
-      </div>}
+      </div> : menu === 'commands' && <CommandMenu editor={editor.current} close={close} ai={setAi} exportMarkdown={exportMarkdown}
+        importMarkdown={() => importInput.current?.click()} help={() => setMenu('help')} />}
+
       <p className="dialog-footer">文書はこのブラウザに保存。AIは実行時に送信先を表示します。</p>
     </dialog>
   </>

@@ -3,31 +3,19 @@ import { Decoration, EditorView, keymap, ViewPlugin, WidgetType, type Decoration
 import { syntaxTree } from '@codemirror/language'
 import { acceptCompletion, autocompletion, clearSnippet, closeCompletion, CompletionContext, moveCompletionSelection, nextSnippetField, prevSnippetField, selectedCompletion, snippetCompletion, snippetKeymap, startCompletion, type Completion, type CompletionResult } from '@codemirror/autocomplete'
 import { findDiagrams } from './document'
+import { FLOW as flow, SEQUENCE as sequence, searchTemplates, diagramSnippets, normalizeSearch, searchScore } from './assistance'
 
 interface Suggestion extends Completion { preview: string; search?: string }
-const flow = 'flowchart LR\n  A[${1:はじめ}] --> B[${2:つぎ}]'
-const sequence = 'sequenceDiagram\n  participant User as ${1:利用者}\n  participant API as ${2:サーバー}\n  User->>API: ${3:リクエスト}\n  API-->>User: ${4:応答}'
 function template(label: string, title: string, text: string, search = ''): Suggestion {
   return { ...snippetCompletion(text, { label, displayLabel: title, detail: 'Tabで挿入', info: text.replace(/\$\{\d+:([^}]*)\}/g, '$1').replace(/\$\{0\}/g, ''), type: 'keyword' }), preview: text.split('\n')[0].replace(/\$\{\d+:([^}]*)\}/g, '$1'), search: `${label} ${title} ${search}` }
 }
-const commands = [
-  template('/flow', 'フロー図', '```mermaid\n' + flow + '\n```\n\n${0}', 'フローチャート 図 flowchart'),
-  template('/sequence', 'シーケンス図', '```mermaid\n' + sequence + '\n```\n\n${0}', '処理 順序'),
-  template('/heading', '見出し', '# ${1:見出し}\n\n${0}', 'h1'),
-  template('/h2', '小見出し', '## ${1:小見出し}\n\n${0}'),
-  template('/list', '箇条書き', '- ${1:項目}', 'bullet'),
-  template('/number', '番号付きリスト', '1. ${1:項目}', '番号 list'),
-  template('/bold', '太字', '**${1:強調する言葉}**${0}'),
-  template('/inline', 'インラインコード', '`${1:code}`${0}'),
-  template('/code', 'コードブロック', '```${1:text}\n${2:コード}\n```\n\n${0}'),
-]
 const composingEffect = StateEffect.define<boolean>()
 const composing = StateField.define({ create: () => false, update: (value, tr) => tr.effects.reduce((v, e) => e.is(composingEffect) ? e.value : v, value) })
 const isComposing = (view: EditorView) => view.composing || view.state.field(composing, false) === true
 
 function identifiers(source: string, sequenceMode: boolean): string[] {
   const found = new Set<string>()
-  for (const raw of source.split('\n').slice(1)) {
+  for (const raw of source.split(/\n|;/).slice(1)) {
     const line = raw.replace(/%%.*$/, '').replace(/\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|"[^"]*"/g, '')
     if (sequenceMode) {
       const declaration = /^\s*(?:participant|actor)\s+([\p{L}_][\p{L}\p{N}_]*)/u.exec(line)
@@ -59,18 +47,33 @@ export function canvasCompletion(context: CompletionContext): CompletionResult |
       if (direction) return { from: pos - direction[1].length, to: pos + (state.sliceDoc(pos, line.to).match(/^\w*/)?.[0].length ?? 0), options: ['LR', 'TD', 'RL', 'BT', 'TB'].map(label => ({ label, detail: { LR: '左→右', TD: '上→下', RL: '右→左', BT: '下→上', TB: '上→下' }[label] })), filter: true }
       if (!/^\s*[A-Za-z]*$/.test(before)) return null
       const keywordEnd = pos + (state.sliceDoc(pos, line.to).match(/^[A-Za-z]*/)?.[0].length ?? 0)
-      const hasContent = state.sliceDoc(keywordEnd, line.to).trim() || block.source.split('\n').slice(1).some(line => line.trim())
+      const hasContent = state.sliceDoc(keywordEnd, line.to).trim() || block.source.split(/\n|;/).slice(1).some(line => line.trim())
       if (hasContent) return { from: line.from + leading, to: keywordEnd, options: ['flowchart', 'graph', 'sequenceDiagram'].map(label => ({ label })) }
       return { from: line.from + leading, to: line.to, options: [template('flowchart LR', 'flowchart LR', flow), template('flowchart TD', 'flowchart TD', flow.replace('LR', 'TD')), template('sequenceDiagram', 'sequenceDiagram', sequence)] }
     }
     const sequenceMode = /^\s*sequenceDiagram/.test(block.source)
+    if ((sequenceMode && before.includes(':')) || (!sequenceMode && (before.match(/\|/g)?.length ?? 0) % 2)) return null
+    const target = (sequenceMode ? /(?:-->>|->>|-x)\s*([\p{L}\p{N}_]*)$/u : /(?:-->|-\.->|==>|---)(?:\|[^|]*\|)?\s*([\p{L}\p{N}_]*)$/u).exec(before)
+    if (target) {
+      const to = pos + (state.sliceDoc(pos, line.to).match(/^[\p{L}\p{N}_]*/u)?.[0].length ?? 0)
+      const options = identifiers(block.source, sequenceMode).map(label => ({ label, detail: '接続先 · この図のノード', type: 'variable' }))
+      return options.length ? { from: pos - target[1].length, to, options } : null
+    }
     const arrow = context.matchBefore(/[-.=<>]+/)
     if (arrow) return { from: arrow.from, to: pos + (state.sliceDoc(pos, line.to).match(/^[-.=<>]+/)?.[0].length ?? 0), options: (sequenceMode ? ['->>', '-->>', '-x'] : ['-->', '-.->', '==>', '---']).map(label => ({ label, detail: '接続', type: 'operator' })) }
     const word = context.matchBefore(/[\p{L}\p{N}_]+/u)
-    if (!word && !context.explicit) return null
+    if (!word && !context.explicit && before.trim()) return null
     const from = word?.from ?? pos
     const to = pos + (state.sliceDoc(pos, line.to).match(/^[\p{L}\p{N}_]+/u)?.[0].length ?? 0)
-    const options = identifiers(block.source, sequenceMode).filter(label => label !== state.sliceDoc(from, to)).map(label => ({ label, detail: 'この図のノード', type: 'variable' }))
+    const options: Completion[] = identifiers(block.source, sequenceMode).filter(label => label !== state.sliceDoc(from, to)).map(label => ({ label, detail: 'この図のノード', type: 'variable', boost: 10 }))
+    if (/^\s*[\p{L}]*$/u.test(before)) {
+      options.push(...diagramSnippets[sequenceMode ? 'sequence' : 'flow'].map(item => template(item.label, `${item.label} · ${item.title}`, item.source)))
+      const query = state.sliceDoc(from, pos)
+      const ranked = options.map(option => ({ option, score: searchScore(query, `${option.label} ${option.displayLabel ?? ''}`) }))
+        .filter(item => item.score >= 0).sort((a, b) => (b.score + (b.option.boost ?? 0)) - (a.score + (a.option.boost ?? 0)))
+        .map(item => item.option)
+      return ranked.length ? { from, to, options: ranked, filter: false } : null
+    }
     return options.length ? { from, to, options } : null
   }
   // A closing fence belongs to the preceding code block, never to a new template.
@@ -85,9 +88,12 @@ export function canvasCompletion(context: CompletionContext): CompletionResult |
   if (inCode) return null
   const slash = /^\s*\/([^\s/]*)$/.exec(before)
   if (slash) {
-    const query = slash[1].toLowerCase()
-    const options = commands.filter(c => c.search!.toLowerCase().includes(query))
+    const options = searchTemplates(slash[1]).map(item => template('/' + item.id, item.title, item.source))
     return options.length ? { from: line.from + before.indexOf('/'), to: pos + (state.sliceDoc(pos, line.to).match(/^[^\s/]*/)?.[0].length ?? 0), options, filter: false } : null
+  }
+  if (pos === line.to && ((context.explicit && !before.trim()) || /^[\p{L}]{2,}$/u.test(before))) {
+    const options = searchTemplates(normalizeSearch(before)).map(item => template('/' + item.id, item.title, item.source))
+    if (options.length) return { from: line.from, to: pos + (state.sliceDoc(pos, line.to).match(/^[\p{L}]*/u)?.[0].length ?? 0), options, filter: false }
   }
   if (/^#{1,3}$/.test(before)) return { from: line.from, to: pos, options: [template(before, '見出し', before + ' ${1:見出し}\n\n${0}')] }
   return null
@@ -116,7 +122,7 @@ const ghost = ViewPlugin.fromClass(class {
     if (!result) return
     const typed = view.state.sliceDoc(result.from, pos)
     const preview = selected.preview ?? (typeof selected.apply === 'string' ? selected.apply : selected.label)
-    const suffix = preview.startsWith(typed) ? preview.slice(typed.length) : typed.startsWith('/') ? ` → ${selected.displayLabel}` : ''
+    const suffix = preview.startsWith(typed) ? preview.slice(typed.length) : selected.displayLabel && selected.preview ? ` → ${selected.displayLabel}` : ''
     if (suffix) this.decorations = Decoration.set([Decoration.widget({ widget: new Ghost(suffix.slice(0, 70) + '  ⇥'), side: 1 }).range(pos)])
   }
 }, { decorations: value => value.decorations })

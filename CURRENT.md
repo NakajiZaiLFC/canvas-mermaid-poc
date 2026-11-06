@@ -1,5 +1,7 @@
 # Current status
 
+Assistance expansion (Nov6): 16 shared templates, Japanese/full-width/typo search, context-aware diagram snippets and targets, visible searchable Cmd/Ctrl+K menu. Review fixes protect prose suffixes and code-block boundaries; template insertion is one Undo group. 37 unit +1 SQLite runtime +36 production browser cases passed (1 real-model test intentionally skipped this run). Publication is being updated; see the latest verification entry.
+
 IME follow-up (Nov6, accepted for PoC): user confirmed Japanese input works in regular Chrome and explicitly directed us to stop this investigation and proceed. Native Chrome conversion and isolated CDP composition/commit/Undo have partial evidence; native candidate-menu selection and native post-commit Undo remain unverified, but are not submission blockers. Manual input in ChatGPT's in-app Canvas remains a reported compatibility limitation; use regular Chrome. Diagnostic observation was removed from the public tab, the diagnostic server stopped and temporary comparison pages removed. No application-code fix was claimed or applied.
 
 2026-11-06: input assistance, durable diagram recovery, conflict-safe persistence and explicitly approved shared cloud AI implemented. Published and verified, including actual cloud generation/repair on the live URL. Consult the dated verification entries for details.

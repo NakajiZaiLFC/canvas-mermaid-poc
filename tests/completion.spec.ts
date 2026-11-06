@@ -66,3 +66,111 @@ test('Enter keeps a literal trigger; Escape closes candidates and composition su
   await page.keyboard.insertText('日本語')
   await expect(editor).toContainText('日本語')
 })
+
+test('visible command menu searches Japanese intent, inserts a template and supports Undo', async ({ page }) => {
+  await page.goto('./')
+  const editor = await replace(page, '前の説明')
+  await page.getByRole('button', { name: '挿入・操作を開く' }).click()
+  const search = page.getByRole('textbox', { name: '挿入・操作を検索' })
+  await expect(search).toBeFocused()
+  await search.fill('分岐')
+  await page.getByRole('button', { name: /条件分岐の図/ }).click()
+  await expect(page.locator('.diagram svg')).toContainText('はい')
+  await expect(editor).toContainText('前の説明')
+  await expect(editor).toBeFocused()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.locator('.diagram svg')).toHaveCount(0)
+  await expect(editor).toHaveText('前の説明')
+})
+
+test('keyboard palette does not accept an IME confirmation Enter', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('textbox', { name: 'ドキュメント' }).focus()
+  await page.keyboard.press('ControlOrMeta+k')
+  const search = page.getByRole('textbox', { name: '挿入・操作を検索' })
+  await search.fill('データベース')
+  await search.dispatchEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229, bubbles: true })
+  await expect(search).toBeVisible()
+  await search.press('Enter')
+  await expect(search).toBeHidden()
+  await expect(page.locator('.diagram svg')).toHaveCount(2)
+})
+
+test('all diagram templates insert valid Mermaid through the actual snippet engine', async ({ page }) => {
+  const { templates } = await import('../src/editor/assistance')
+  await page.goto('./')
+  for (const item of templates.filter(item => item.group === '図')) {
+    await replace(page, '')
+    await page.getByRole('button', { name: '挿入・操作を開く' }).click()
+    await page.getByRole('textbox', { name: '挿入・操作を検索' }).fill(item.title)
+    await page.getByRole('button', { name: new RegExp('^' + item.title) }).click()
+    await expect(page.locator('.diagram[data-state="ready"] svg'), item.id).toBeVisible()
+    await expect(page.locator('.diagram-error:not([hidden])'), item.id).toHaveCount(0)
+    await page.keyboard.press('Escape')
+  }
+})
+
+test('sequence snippet updates repeated participant fields together', async ({ page }) => {
+  await page.goto('./')
+  await replace(page, '```mermaid\nsequenceDiagram\n')
+  await page.keyboard.type('alt')
+  await expect(page.getByRole('option').first()).toContainText('alt')
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await page.keyboard.insertText('Server')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('ControlOrMeta+Shift+P')
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Markdownを書き出す' }).click()
+  const stream = await (await download).createReadStream()
+  const chunks = []
+  for await (const chunk of stream!) chunks.push(chunk)
+  const markdown = Buffer.concat(chunks).toString()
+  expect(markdown.match(/Server-->>User/g)).toHaveLength(2)
+  expect(markdown).not.toContain('API-->>User')
+})
+
+for (const [name, source, line] of [
+  ['closed ordinary fence', '前の説明\n\n```js\nconsole.log(1)\n```\n\n後の説明', 3],
+  ['unclosed Mermaid fence', '前の説明\n\n```mermaid\nflowchart LR\nA-->B', 4],
+  ['indented code', '前の説明\n\n    console.log(1)\n\n後の説明', 2],
+] as const) {
+  test(`menu inserts a root diagram outside ${name}`, async ({ page }) => {
+    await page.goto('./')
+    await replace(page, source)
+    await page.keyboard.press('ControlOrMeta+Home')
+    for (let i = 0; i < line; i++) await page.keyboard.press('ArrowDown')
+    await page.getByRole('button', { name: '挿入・操作を開く' }).click()
+    await page.getByRole('textbox', { name: '挿入・操作を検索' }).fill('条件分岐')
+    await page.getByRole('button', { name: /条件分岐の図/ }).click()
+    await expect(page.locator('.diagram[data-state="ready"] svg').last()).toContainText('はい')
+    await expect(page.locator('.diagram-error:not([hidden])')).toHaveCount(0)
+    await expect(page.locator('.cm-content')).toContainText('前の説明')
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('ControlOrMeta+z')
+    await page.keyboard.press('ControlOrMeta+Shift+P')
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Markdownを書き出す' }).click()
+    const stream = await (await download).createReadStream()
+    const chunks = []
+    for await (const chunk of stream!) chunks.push(chunk)
+    expect(Buffer.concat(chunks).toString()).toBe(source)
+  })
+}
+
+test('Japanese diagram intent and every contextual snippet produce valid editable figures', async ({ page }) => {
+  const { diagramSnippets } = await import('../src/editor/assistance')
+  await page.goto('./')
+  for (const [kind, snippets] of Object.entries(diagramSnippets)) {
+    for (const item of snippets) {
+      await replace(page, '```mermaid\n' + (kind === 'flow' ? 'flowchart LR\nA-->B\n' : 'sequenceDiagram\nUser->>API: 依頼\n'))
+      await page.keyboard.insertText(item.label === 'loop' ? '繰り返し' : item.label)
+      await expect(page.getByRole('option').first(), item.label).toContainText(item.label)
+      await page.keyboard.press('Tab')
+      await expect(page.locator('.diagram[data-state="ready"] svg'), item.label).toBeVisible()
+      await expect(page.locator('.diagram-error:not([hidden])'), item.label).toHaveCount(0)
+      await page.keyboard.press('Escape')
+    }
+  }
+})

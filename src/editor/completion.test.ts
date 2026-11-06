@@ -58,3 +58,37 @@ it('header completion changes only the keyword when a diagram already has conten
   expect(text.replace('¦', '').slice(result.from, result.to)).toBe('flowchart')
   expect(result.options.every(option => typeof option.apply !== 'function')).toBe(true)
 })
+
+it('finds Japanese intent, full-width commands and small English typos', () => {
+  expect(labels('/分岐¦')).toContain('/decision')
+  expect(labels('/データベース¦')).toContain('/database')
+  expect(labels('/繰り返し¦')).toContain('/loop')
+  expect(labels('/ｆｌｏｗ¦')[0]).toBe('/flow')
+  expect(labels('/sequnce¦')[0]).toBe('/sequence')
+  expect(labels('フロー¦')).toContain('/flow')
+  expect(complete('説明をそのまま書き続ける¦')).toBeNull()
+  expect(complete('¦', true)?.options.length).toBeGreaterThan(10)
+})
+
+it('offers diagram-specific building blocks and targets after arrows', () => {
+  expect(labels('```mermaid\nflowchart LR\nsub¦\n```')).toContain('subgraph')
+  expect(labels('```mermaid\nsequenceDiagram\nlo¦\n```')).toContain('loop')
+  expect(labels('```mermaid\nflowchart LR\nlo¦\n```')).not.toContain('loop')
+  expect(labels('```mermaid\nflowchart LR\nWeb-->API; API-->DB\nWeb --> ¦\n```')).toContain('DB')
+  expect(labels('```mermaid\nsequenceDiagram\nparticipant User\nparticipant API\nUser->>¦\n```')).toContain('API')
+  expect(complete('```mermaid\nsequenceDiagram\nUser->>API: メッセージ¦\n```')).toBeNull()
+  expect(complete('```mermaid\nflowchart LR\nA -->|ラベル¦\n```')).toBeNull()
+})
+
+it('does not offer structural plain-language completion over an existing prose suffix', () => {
+  expect(complete('フロー¦図について説明')).toBeNull()
+  expect(complete('flow¦chartについて説明')).toBeNull()
+})
+
+it('finds Japanese diagram actions in their own diagram family', () => {
+  expect(labels('```mermaid\nflowchart LR\n分岐¦\n```')).toContain('decision')
+  expect(labels('```mermaid\nsequenceDiagram\n分岐¦\n```')).toContain('alt')
+  expect(labels('```mermaid\nsequenceDiagram\n分岐¦\n```')).not.toContain('participant')
+  expect(complete('```mermaid\nsequenceDiagram\n分岐¦\n```')?.filter).toBe(false)
+  expect(labels('```mermaid\nsequenceDiagram\n繰り返し¦\n```')).toContain('loop')
+})

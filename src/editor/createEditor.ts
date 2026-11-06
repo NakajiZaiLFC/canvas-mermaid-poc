@@ -1,8 +1,10 @@
 import { EditorState, MapMode } from '@codemirror/state'
 import { EditorView, keymap, drawSelection, highlightSpecialChars } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, indentWithTab, redo, isolateHistory } from '@codemirror/commands'
+import { snippet, startCompletion } from '@codemirror/autocomplete'
+import type { Template } from './assistance'
 import { markdown, markdownKeymap } from '@codemirror/lang-markdown'
-import { bracketMatching } from '@codemirror/language'
+import { bracketMatching, syntaxTree } from '@codemirror/language'
 import { DiagramRenderer } from '../diagrams/renderer'
 import { renderMermaid } from '../diagrams/mermaid'
 import { livePreview } from './preview'
@@ -21,12 +23,13 @@ export function createEditor(parent: HTMLElement, initial: string, callbacks: {
   const preview = livePreview(renderer, recovery)
   const targets = new Set<AITarget>()
   const view = new EditorView({ parent, state: EditorState.create({ doc: initial, extensions: [
-    markdown(), history(), drawSelection(), highlightSpecialChars(), bracketMatching(),
+    markdown(), history(), EditorState.allowMultipleSelections.of(true), drawSelection(), highlightSpecialChars(), bracketMatching(),
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ 'aria-label': 'ドキュメント', spellcheck: 'false', autocapitalize: 'off' }),
     ...preview.extensions, inputAssistance(),
     keymap.of([
       { key: 'Mod-Shift-p', run: () => { callbacks.commands(); return true } },
+      { key: 'Mod-k', run: () => { callbacks.commands(); return true } },
       { key: 'F1', run: () => { callbacks.help(); return true } },
       { key: 'Escape', run: preview.exit },
       { key: 'Mod-Shift-z', run: redo, preventDefault: true },
@@ -81,6 +84,37 @@ export function createEditor(parent: HTMLElement, initial: string, callbacks: {
     },
     replace(markdown: string) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: markdown.replace(/\r\n?/g, '\n') }, selection: { anchor: 0 }, userEvent: 'input' })
+      view.focus()
+    },
+    complete() { view.focus(); startCompletion(view) },
+    insertTemplate(item: Template) {
+      view.dispatch({ annotations: isolateHistory.of('before') })
+      const selection = view.state.selection.main
+      const wrappers: Record<string, string> = { bold: '**', italic: '*', inline: '`' }
+      const wrap = wrappers[item.id]
+      if (wrap && !selection.empty) {
+        const insert = wrap + view.state.sliceDoc(selection.from, selection.to) + wrap
+        view.dispatch({ changes: { from: selection.from, to: selection.to, insert }, selection: { anchor: selection.from + insert.length }, userEvent: 'input' })
+      } else if (wrap) {
+        snippet(item.source)(view, null, selection.head, selection.head)
+      } else {
+        const line = view.state.doc.lineAt(selection.head)
+        let node = syntaxTree(view.state).resolveInner(selection.head, -1)
+        while (node.parent && !['FencedCode', 'CodeBlock'].includes(node.name)) node = node.parent
+        const inCode = ['FencedCode', 'CodeBlock'].includes(node.name)
+        const at = inCode ? node.to : line.to
+        let prefix = inCode || line.text.length ? '\n\n' : ''
+        if (node.name === 'FencedCode' && node.getChildren('CodeMark').length < 2) {
+          const fence = view.state.doc.lineAt(node.from).text.match(/^\s*(`{3,}|~{3,})/)?.[1]
+          if (fence) prefix = `\n${fence}\n\n`
+        }
+        // Start a real blank line before applying the snippet, so indentation
+        // from the preceding code line cannot turn the new block into code.
+        if (prefix) view.dispatch({ changes: { from: at, insert: prefix }, userEvent: 'input.complete' })
+        const start = at + prefix.length
+        snippet(item.source + (start < view.state.doc.length ? '\n' : ''))(view, null, start, start)
+      }
+      view.dispatch({ annotations: isolateHistory.of('after') })
       view.focus()
     },
     insertDiagram() {

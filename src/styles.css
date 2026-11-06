@@ -51,3 +51,17 @@ h2 { font-size: 23px; letter-spacing: -.035em; margin: 18px 0 22px; }
 .ai-provider select { font: inherit; color: inherit; background: #fcfcf9; border: 1px solid #dce5de; border-radius: 5px; padding: 8px; }
 .ai-disclosure { font-size: 12px; line-height: 1.6; padding: 10px 12px; background: #f3eee2; border-radius: 7px; color: #74603b; }
 .ai-disclosure a { display: block; color: inherit; }
+
+.command-launcher { position: fixed; right: 22px; bottom: 20px; border: 1px solid #dce5de; background: #fcfcf9ee; color: #65816b; border-radius: 24px; padding: 8px 14px; font-size: 16px; box-shadow: 0 3px 16px #203c3008; z-index: 5; }
+.command-launcher span { font-size: 12px; vertical-align: 1px; }
+.command-launcher:hover { background: #edf2ec; color: #284e3c; }
+.command-search { width: 100%; border: 1px solid #cbd9cc; border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; background: white; color: inherit; font-size: 16px; }
+.command-list { max-height: min(42vh, 360px); overflow-y: auto; overscroll-behavior: contain; }
+.command-list .command-active { background: #edf2ec; }
+.command-title, .command-description { display: block; }
+.command-description { color: #7b8e80; font-size: 12px; margin-top: 4px; }
+.command-preview { background: #f0f3ed; color: #587261; font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; max-height: 110px; overflow: auto; padding: 10px 12px; border-radius: 6px; margin: 10px 0 0; }
+.command-hint { font-size: 11px; color: #7b8e80; margin: 12px 0 0; }
+.command-empty { font-size: 14px; line-height: 1.7; color: #708174; padding: 8px; }
+.command-dialog { max-height: 92vh; overflow-y: auto; }
+@media print { .command-launcher { display: none; } }
