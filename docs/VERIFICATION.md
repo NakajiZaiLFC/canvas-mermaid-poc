@@ -159,3 +159,5 @@ Investigation closure by user decision (Nov6): the user confirmed Japanese input
 - Actual local UI checked through Computer Use: button, Japanese menu search, descriptions/code example, close/focus return. Existing user document left intact. Native IME follow-up remains deferred per user instruction.
 
 Mermaid loop/alt/par syntax checked against [official sequence documentation](https://mermaid.js.org/syntax/sequenceDiagram.html); CodeMirror snippet/history semantics checked in the installed6.43.15/6.20.4 API declarations and implementation.
+
+Deployment: frontend `66316d4b02376a7d7ce66b3122b1299e69bef452` published successfully by [Actions42178657789](https://github.com/NakajiZaiLFC/canvas-mermaid-poc/actions/runs/42178657789). `CLOUD_TEST=1 TEST_URL=https://nakajizailfc.github.io/canvas-mermaid-poc/ npm run test:e2e -- tests/completion.spec.ts`: **11 passed**, including all7 root diagram templates, all13 contextual snippets, menu/Undo, code boundaries and Japanese intent. Published menu screenshot visually checked: [searching for 分岐](screenshots/canvas-assistance.png). No live AI request was needed for this assistance release.
